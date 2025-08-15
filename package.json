@@ -1,0 +1,9 @@
+{
+  "name": "vercel-gemini-proxy-pro",
+  "version": "5.2.0",
+  "scripts": {
+    "dev": "vercel dev --listen 3000",
+    "start": "vercel dev --listen 3000",
+    "deploy": "vercel --prod"
+  }
+}
