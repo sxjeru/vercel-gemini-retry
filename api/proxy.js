@@ -33,15 +33,28 @@ const CONFIG = {
   debug_mode: process.env.DEBUG_MODE === 'true',
   retry_delay_ms: parseInt(process.env.RETRY_DELAY_MS || "750", 10),
   swallow_thoughts_after_retry: process.env.SWALLOW_THOUGHTS_AFTER_RETRY !== 'false', // 默认为 true
+  retry_on_rate_limit: process.env.RETRY_ON_RATE_LIMIT === 'true', // 默认为 false，是否对429错误进行重试
 };
 
-const NON_RETRYABLE_STATUSES = new Set([400, 401, 403, 404, 429]);
+// 根据配置动态构建不可重试的状态码集合
+const NON_RETRYABLE_STATUSES = new Set([400, 401, 403, 404]);
+if (!CONFIG.retry_on_rate_limit) {
+  NON_RETRYABLE_STATUSES.add(429); // 如果禁用了对429的重试，则将其加入不可重试列表
+}
 
 
 
 const logDebug = (...args) => { if (CONFIG.debug_mode) console.log(`[DEBUG ${new Date().toISOString()}]`, ...args); };
 const logInfo  = (...args) => console.log(`[INFO ${new Date().toISOString()}]`, ...args);
 const logError = (...args) => console.error(`[ERROR ${new Date().toISOString()}]`, ...args);
+
+// 初始化日志 - 显示当前配置
+// logInfo(`=== VERCEL GEMINI RETRY PROXY INITIALIZED ===`);
+// logInfo(`Max consecutive retries: ${CONFIG.max_consecutive_retries}`);
+// logInfo(`Retry delay: ${CONFIG.retry_delay_ms}ms`);
+// logInfo(`Retry on rate limit (429): ${CONFIG.retry_on_rate_limit}`);
+// logInfo(`Debug mode: ${CONFIG.debug_mode}`);
+// logInfo(`Non-retryable status codes: [${Array.from(NON_RETRYABLE_STATUSES).join(', ')}]`);
 
 const handleOPTIONS = () => new Response(null, {
   headers: {
@@ -260,7 +273,12 @@ async function processStreamAndRetryInternally({ initialReader, writer, original
     logDebug(`=== Starting stream attempt ${consecutiveRetryCount + 1}/${CONFIG.max_consecutive_retries + 1} ===`);
 
     try {
-      for await (const line of sseLineIterator(currentReader)) {
+      // 如果没有初始reader（例如初始请求失败），直接进入重试逻辑
+      if (!currentReader) {
+        logInfo("No current reader available - triggering immediate retry");
+        interruptionReason = "FETCH_ERROR";
+      } else {
+        for await (const line of sseLineIterator(currentReader)) {
         totalLinesProcessed++;
         linesInThisStream++;
 
@@ -328,6 +346,7 @@ async function processStreamAndRetryInternally({ initialReader, writer, original
           break;
         }
       }
+      } // 关闭 else 块
 
       if (!cleanExit && interruptionReason === null) {
         logError("Stream ended without finish reason - detected as DROP");
@@ -479,7 +498,39 @@ async function handleStreamingPost(request) {
 
   if (!initialResponse.ok) {
     logError(`=== INITIAL REQUEST FAILED ===`);
-    return await standardizeInitialError(initialResponse);
+    
+    // 检查是否为不可重试的错误状态码
+    if (NON_RETRYABLE_STATUSES.has(initialResponse.status)) {
+      logError(`Non-retryable error status ${initialResponse.status} - returning error immediately`);
+      return await standardizeInitialError(initialResponse);
+    }
+    
+    // 对于可重试的错误（如 429, 500, 502, 503, 504 等），进入重试流程
+    logInfo(`Retryable error status ${initialResponse.status} - entering retry mode`);
+    
+    const { readable, writable } = new TransformStream();
+    const writer = writable.getWriter();
+    
+    // 立即开始重试流程，不等待初始流
+    processStreamAndRetryInternally({
+      initialReader: null, // 没有初始流，直接从重试开始
+      writer,
+      originalRequestBody,
+      upstreamUrl,
+      originalHeaders: request.headers
+    }).catch(err => {
+      logError(`Fatal error in retry stream processing: ${err.message}`);
+      writer.close();
+    });
+    
+    return new Response(readable, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "Access-Control-Allow-Origin": "*",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      },
+    });
   }
 
   logInfo("=== INITIAL REQUEST SUCCESSFUL - STARTING STREAM PROCESSING ===");

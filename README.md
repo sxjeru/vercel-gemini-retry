@@ -6,7 +6,7 @@
 - https://linux.do/t/topic/865204
 - https://linux.do/t/topic/864744
 
-#### 本人仅添加香港区域限制，并感谢上述所有开发者的贡献。
+#### 本人仅添加香港区域限制，并针对号池允许对 429 错误重试。在此一并感谢上述所有开发者的贡献。
 
 ### 一键部署：
 <a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsxjeru%2Fvercel-gemini-retry&env=UPSTREAM_URL_BASE,MAX_CONSECUTIVE_RETRIES,DEBUG_MODE,RETRY_DELAY_MS,SWALLOW_THOUGHTS_AFTER_RETRY&envDescription=%E7%95%99%E7%A9%BA%E5%8D%B3%E4%BD%BF%E7%94%A8%E9%BB%98%E8%AE%A4%E5%80%BC%E3%80%82%E5%A6%82%E9%9C%80%E8%87%AA%E5%AE%9A%E4%B9%89%EF%BC%8C%E8%AF%B7%E5%8F%82%E8%80%83%20README%20%E6%96%87%E6%A1%A3%EF%BC%9A&envLink=https%3A%2F%2Fgithub.com%2Fsxjeru%2Fvercel-gemini-retry%2Fblob%2Fmain%2FREADME.md&project-name=vercel-gemini-retry&repository-name=vercel-gemini-retry" target="_blank" rel="noopener noreferrer"><img src="https://vercel.com/button" alt="Deploy with Vercel" style="position: relative; top: 16px;"></a>
@@ -31,9 +31,10 @@
 
 - `UPSTREAM_URL_BASE`：上游 API 基础 URL，默认 `https://generativelanguage.googleapis.com`
 - `MAX_CONSECUTIVE_RETRIES`：最大连续重试次数（默认 `100`）
-- `DEBUG_MODE`：开启调试日志（`true`/`false`）
+- `DEBUG_MODE`：开启调试日志（`true`/`false`，默认关闭）
 - `RETRY_DELAY_MS`：重试间隔毫秒数（默认 `750`）
 - `SWALLOW_THOUGHTS_AFTER_RETRY`：重试后是否吞掉模型的“思考（thought）”片段（`true`/`false`，默认为 `true`）
+- `RETRY_ON_RATE_LIMIT`：是否对 429 (Rate Limit) 错误进行重试（`true`/`false`，默认为 `false`）
 
 另外，客户端需要在请求头中传递 `Authorization`（或 `X-Goog-Api-Key`）用于上游认证。
 
