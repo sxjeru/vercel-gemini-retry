@@ -11,7 +11,7 @@
 ### 一键部署：
 <a href="https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fsxjeru%2Fvercel-gemini-retry&env=UPSTREAM_URL_BASE,MAX_CONSECUTIVE_RETRIES,DEBUG_MODE,RETRY_DELAY_MS,SWALLOW_THOUGHTS_AFTER_RETRY&envDescription=%E7%95%99%E7%A9%BA%E5%8D%B3%E4%BD%BF%E7%94%A8%E9%BB%98%E8%AE%A4%E5%80%BC%E3%80%82%E5%A6%82%E9%9C%80%E8%87%AA%E5%AE%9A%E4%B9%89%EF%BC%8C%E8%AF%B7%E5%8F%82%E8%80%83%20README%20%E6%96%87%E6%A1%A3%EF%BC%9A&envLink=https%3A%2F%2Fgithub.com%2Fsxjeru%2Fvercel-gemini-retry%2Fblob%2Fmain%2FREADME.md&project-name=vercel-gemini-retry&repository-name=vercel-gemini-retry" target="_blank" rel="noopener noreferrer"><img src="https://vercel.com/button" alt="Deploy with Vercel" style="position: relative; top: 16px;"></a>
 
-# vercel-gemini-try'n'retry
+# Vercel Gemini try'n'retry
 
 一个 Gemini 代理项目，支持流式（SSE）响应、内部重试机制以及对上游错误的标准化处理。
 
@@ -19,7 +19,7 @@
 
 ## 限制
 - [Vercel Function](https://vercel.com/docs/functions/runtimes/edge) 要求在 25 秒内发送初始响应，此后无执行时间限制，包括长时间流式输出。
-- 
+- 末尾会固定输出 `[done]`
 
 ## 快速概览
 - Edge Function 路由：`/api/proxy`
