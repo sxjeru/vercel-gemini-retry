@@ -33,14 +33,13 @@ const CONFIG = {
   debug_mode: process.env.DEBUG_MODE === 'true',
   retry_delay_ms: parseInt(process.env.RETRY_DELAY_MS || "750", 10),
   swallow_thoughts_after_retry: process.env.SWALLOW_THOUGHTS_AFTER_RETRY !== 'false', // 默认为 true
-  retry_on_rate_limit: process.env.RETRY_ON_RATE_LIMIT === 'true', // 默认为 false，是否对429错误进行重试
+  keypool_mode: process.env.KEYPOOL_MODE === 'true', // 默认为 false，号池模式开关
 };
 
 // 根据配置动态构建不可重试的状态码集合
-const NON_RETRYABLE_STATUSES = new Set([400, 401, 403, 404]);
-if (!CONFIG.retry_on_rate_limit) {
-  NON_RETRYABLE_STATUSES.add(429); // 如果禁用了对429的重试，则将其加入不可重试列表
-}
+const NON_RETRYABLE_STATUSES = CONFIG.keypool_mode 
+  ? new Set([404]) // 号池模式：遇 key 失效继续尝试
+  : new Set([400, 403, 404, 429]); // 普通模式：单 key 场景，遇报错即不再重试
 
 
 
@@ -52,7 +51,7 @@ const logError = (...args) => console.error(`[ERROR ${new Date().toISOString()}]
 // logInfo(`=== VERCEL GEMINI RETRY PROXY INITIALIZED ===`);
 // logInfo(`Max consecutive retries: ${CONFIG.max_consecutive_retries}`);
 // logInfo(`Retry delay: ${CONFIG.retry_delay_ms}ms`);
-// logInfo(`Retry on rate limit (429): ${CONFIG.retry_on_rate_limit}`);
+// logInfo(`Keypool mode enabled: ${CONFIG.keypool_mode}`);
 // logInfo(`Debug mode: ${CONFIG.debug_mode}`);
 // logInfo(`Non-retryable status codes: [${Array.from(NON_RETRYABLE_STATUSES).join(', ')}]`);
 
