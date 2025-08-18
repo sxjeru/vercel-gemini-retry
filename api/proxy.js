@@ -39,7 +39,7 @@ const CONFIG = {
 // 根据配置动态构建不可重试的状态码集合
 const NON_RETRYABLE_STATUSES = CONFIG.keypool_mode 
   ? new Set([404]) // 号池模式：遇 key 失效继续尝试
-  : new Set([400, 403, 404, 429]); // 普通模式：单 key 场景，遇报错即不再重试
+  : new Set([400, 401, 403, 404, 429]); // 普通模式：单 key 场景，遇报错即不再重试
 
 
 
